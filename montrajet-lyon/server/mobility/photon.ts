@@ -1,5 +1,6 @@
 import type { AddressPlace } from '../../src/types/mobility.ts'
 import type { GeographicTrace } from './provider.ts'
+import { pause, waitForTurn } from './wait.ts'
 
 interface PhotonFeature {
   geometry?: {
@@ -81,16 +82,16 @@ export function createPhotonProvider(
       release = resolve
     })
 
-    await previous
+    let gateAcquired = false
 
     try {
+      await waitForTurn(previous, signal)
+      gateAcquired = true
       signal?.throwIfAborted()
 
       const wait = Math.max(0, 1000 - (now() - lastRequest))
 
-      if (wait > 0) {
-        await new Promise(resolve => setTimeout(resolve, wait))
-      }
+      await pause(wait, signal)
 
       signal?.throwIfAborted()
       lastRequest = now()
@@ -212,7 +213,9 @@ export function createPhotonProvider(
         }
       }
     } finally {
-      release()
+      // Preserve FIFO order even if a queued consumer gives up early.
+      if (gateAcquired) release()
+      else void previous.then(release, release)
     }
   }
 
