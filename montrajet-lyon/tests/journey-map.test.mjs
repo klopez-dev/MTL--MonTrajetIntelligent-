@@ -4,6 +4,7 @@ import {coordinate,lineGeometry,sliceMeasuredShape,mapSteps} from '../src/servic
 import {mapProvider} from '../src/services/mapProvider.ts'
 import {handleMapRequest} from '../server/maps/api.ts'
 import {DatabaseSync} from 'node:sqlite'
+import { existsSync } from 'node:fs'
 
 test('Coordonnées GeoJSON longitude/latitude : nombres finis et bornes, jamais null ou chaînes',()=>{
   assert.equal(coordinate([4.8,45.7]),true)
@@ -51,7 +52,7 @@ test('Vue du trajet courant remplace les étapes sans muter la proposition préc
 test('Fournisseur configurable : aucun URL arbitraire ni clé secrète',()=>{
   assert.equal(mapProvider('none'),'none');assert.equal(mapProvider(undefined),'osm');assert.equal(mapProvider('https://TEST.invalid'),'osm')
 })
-test('API cartographique réelle : exactitude des courses, sens, séquences, couleurs et refus GTFS différent',async()=>{
+test('API cartographique réelle : exactitude des courses, sens, séquences, couleurs et refus GTFS différent', { skip: !existsSync('.data/gtfs.sqlite') }, async()=>{
   const sqlite=new DatabaseSync('.data/gtfs.sqlite',{readOnly:true})
   try{
     const db={all:async(sql,params=[])=>sqlite.prepare(sql).all(...params)}
