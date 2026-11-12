@@ -1,6 +1,7 @@
 import type { Point, WalkPath } from '../../src/types/mobility.ts'
 import { distance, GeographicError } from './provider.ts'
 import type { GeographicTrace } from './provider.ts'
+import { pause, waitForTurn } from './wait.ts'
 
 const endpoint = 'https://valhalla1.openstreetmap.de/route'
 
@@ -113,9 +114,11 @@ export function createValhallaProvider(
     gate = new Promise<void>(resolve => { release = resolve })
 
     const queuedAt = performance.now()
+    let gateAcquired = false
 
     try {
-      await previous
+      await waitForTurn(previous, signal)
+      gateAcquired = true
       if (trace) trace.queueMs += performance.now() - queuedAt
 
       signal?.throwIfAborted()
@@ -126,9 +129,7 @@ export function createValhallaProvider(
 
       const delay = Math.max(0, 1100 - (now() - lastRequest))
 
-      if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
+      await pause(delay, signal)
 
       signal?.throwIfAborted()
       lastRequest = now()
@@ -250,7 +251,9 @@ export function createValhallaProvider(
         if (trace) trace.walkingMs += performance.now() - started
       }
     } finally {
-      release()
+      // An abandoned waiter must not allow a later request past an active one.
+      if (gateAcquired) release()
+      else void previous.then(release, release)
     }
   }
 
