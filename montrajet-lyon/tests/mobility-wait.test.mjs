@@ -5,7 +5,7 @@ import { pause, waitForTurn } from '../server/mobility/wait.ts'
 test('an already cancelled queue entry fails immediately', async () => {
   const controller = new AbortController()
   controller.abort(new Error('cancelled'))
-  await assert.rejects(waitForTurn(Promise.resolve(), controller.signal), /cancelled/)
+  assert.throws(() => waitForTurn(Promise.resolve(), controller.signal), /cancelled/)
 })
 
 test('aborting a queued entry does not require earlier work to finish', async () => {
@@ -31,5 +31,5 @@ test('an aborted pacing delay clears its timer promptly', async () => {
 test('an already cancelled pacing delay rejects even for zero milliseconds', async () => {
   const controller = new AbortController()
   controller.abort(new Error('cancelled'))
-  await assert.rejects(pause(0, controller.signal), /cancelled/)
+  assert.throws(() => pause(0, controller.signal), /cancelled/)
 })
