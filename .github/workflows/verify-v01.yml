@@ -1,0 +1,26 @@
+name: Verification V0.1
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: montrajet-lyon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: montrajet-lyon/package-lock.json
+      - name: Installer les dependances
+        run: npm ci
+      - name: Tests unitaires
+        run: npm test
+      - name: Compilation TypeScript et Vite
+        run: npm run build
